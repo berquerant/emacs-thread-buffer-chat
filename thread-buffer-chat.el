@@ -2,7 +2,7 @@
 
 ;; Author: berquerant
 ;; Maintainer: berquerant
-;; Package-Requires: ((little-async "0.1.1") (thread-buffer "0.1.0") (cl-lib "1.0"))
+;; Package-Requires: ((cl-lib "1.0"))
 ;; Created: 6 Sep 2023
 ;; Version: 0.1.0
 ;; Keywords: thread buffer
