@@ -4,7 +4,7 @@
 ;; Maintainer: berquerant
 ;; Package-Requires: ((cl-lib "1.0"))
 ;; Created: 6 Sep 2023
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Keywords: thread buffer
 ;; URL: https://github.com/berquerant/emacs-thread-buffer-chat
 
@@ -27,6 +27,7 @@
 
 ;;; Code:
 
+;; TODO: add to Package-Requires
 (require 'little-async)  ; https://github.com/berquerant/emacs-little-async
 (require 'thread-buffer) ; https://github.com/berquerant/emacs-thread-buffer
 (require 'cl-lib)
