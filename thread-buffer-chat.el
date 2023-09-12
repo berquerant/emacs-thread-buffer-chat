@@ -4,7 +4,7 @@
 ;; Maintainer: berquerant
 ;; Package-Requires: ((cl-lib "1.0"))
 ;; Created: 6 Sep 2023
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Keywords: thread buffer
 ;; URL: https://github.com/berquerant/emacs-thread-buffer-chat
 
@@ -80,20 +80,12 @@ APPEND, NO-SWITCH, for other details, see `thread-buffer-write'."
     (defun thread-buffer-chat-start--internal-output-filter (p output)
       (thread-buffer-write output buffer-template buffer-regex append no-switch))
 
-    (defun thread-buffer-chat-start--internal-process-sentinel-advice-display-buffer-overwride (buffer &optional action frame)
-      nil)
-    (defun thread-buffer-chat-start--internal-process-sentinel (p event)
-      (advice-add #'display-buffer :override #'thread-buffer-chat-start--internal-process-sentinel-advice-display-buffer-overwride)
-      (little-async--default-process-sentinel p event)
-      (advice-remove #'display-buffer #'thread-buffer-chat-start--internal-process-sentinel-advice-display-buffer-overwride))
-
     (little-async-start-process command
                                 :input input
                                 :process-name thread-buffer-chat-process-name
                                 :buffer-name thread-buffer-chat-process-buffer-name
                                 :timeout timeout
-                                :filter #'thread-buffer-chat-start--internal-output-filter
-                                :sentinel #'thread-buffer-chat-start--internal-process-sentinel)))
+                                :filter #'thread-buffer-chat-start--internal-output-filter)))
 
 (provide 'thread-buffer-chat)
 ;;; thread-buffer-chat.el ends here
