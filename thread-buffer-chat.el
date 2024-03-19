@@ -4,7 +4,7 @@
 ;; Maintainer: berquerant
 ;; Package-Requires: ((cl-lib "1.0"))
 ;; Created: 6 Sep 2023
-;; Version: 0.1.2
+;; Version: 0.2.0
 ;; Keywords: thread buffer
 ;; URL: https://github.com/berquerant/emacs-thread-buffer-chat
 
@@ -61,7 +61,7 @@
   :type 'string)
 
 (cl-defun thread-buffer-chat-start
-    (command input &key timeout buffer-template buffer-regex append no-switch)
+    (command input &key timeout buffer-template buffer-regex stderr append no-switch)
   "Start chat with `thread-buffer' by COMMAND.
 
 COMMAND read INPUT from stdin, COMMAND and INPUT are required.
@@ -72,6 +72,7 @@ BUFFER-TEMPLATE is a template of the thread buffer name,
 e.g. `*thread-%d*'.
 BUFFER-REGEX is used to check if the current buffer is a thread buffer,
 e.g. `\*thread-[0-9]\*'.
+STDERR is a buffer name for stderr.
 APPEND, NO-SWITCH, for other details, see `thread-buffer-write'."
   (let ((timeout (* 1000 (or timeout thread-buffer-chat-default-timeout)))
         (buffer-template (or buffer-template thread-buffer-chat-default-buffer-template))
@@ -84,6 +85,7 @@ APPEND, NO-SWITCH, for other details, see `thread-buffer-write'."
                                 :input input
                                 :process-name thread-buffer-chat-process-name
                                 :buffer-name thread-buffer-chat-process-buffer-name
+                                :stderr stderr
                                 :timeout timeout
                                 :filter #'thread-buffer-chat-start--internal-output-filter)))
 
