@@ -4,7 +4,7 @@
 ;; Maintainer: berquerant
 ;; Package-Requires: ((cl-lib "1.0"))
 ;; Created: 6 Sep 2023
-;; Version: 0.2.0
+;; Version: 0.3.0
 ;; Keywords: thread buffer
 ;; URL: https://github.com/berquerant/emacs-thread-buffer-chat
 
@@ -60,6 +60,57 @@
   :group 'thread-buffer-chat
   :type 'string)
 
+(defcustom thread-buffer-chat-tmp-output-buffer "*thread-buffer-chat-tmp-output*"
+  "Temporary output buffer name."
+  :group 'thread-buffer-chat
+  :type 'string)
+
+(defcustom thread-buffer-chat-process-sentinel-buffer "*thread-buffer-chat-process-sentinel*"
+  "Buffer name of the buffer to accespt the process sentinel of `thread-buffer-chat-start'."
+  :group 'thread-buffer-chat
+  :type 'string)
+
+(defun thread-buffer-chat--get-tmp-output-buffer-create ()
+  (get-buffer-create thread-buffer-chat-tmp-output-buffer))
+
+(defun thread-buffer-chat--erase-buffer (buffer)
+  (with-current-buffer buffer
+    (erase-buffer)))
+
+(defun thread-buffer-chat--append-buffer (input buffer)
+  (with-current-buffer buffer
+    (goto-char (point-max))
+    (insert input)))
+
+(defun thread-buffer-chat--read-buffer (buffer)
+  (with-current-buffer buffer
+    (buffer-string)))
+
+(defun thread-buffer-chat--append-tmp-output (input)
+  (thread-buffer-chat--append-buffer input (thread-buffer-chat--get-tmp-output-buffer-create)))
+
+(defun thread-buffer-chat--erase-tmp-output ()
+  (thread-buffer-chat--erase-buffer (thread-buffer-chat--get-tmp-output-buffer-create)))
+
+(defun thread-buffer-chat--read-tmp-output ()
+  (thread-buffer-chat--read-buffer (thread-buffer-chat--get-tmp-output-buffer-create)))
+
+(defun little-async--to-datetime (&optional time zone)
+  (format-time-string "%F %T"
+                      (or time (current-time))
+                      (or zone (current-time-zone))))
+
+(defun thread-buffer-chat--log (txt)
+  (thread-buffer-chat--append-buffer (format "%s %s" (format-time-string "%F %T") txt)
+                                     (get-buffer-create thread-buffer-chat-process-sentinel-buffer)))
+
+(defun thread-buffer-chat--describe-process (process)
+  (format "%s (pid: %d, status: %s) %s"
+          (process-name process)
+          (process-id process)
+          (symbol-name (process-status (process-name process)))
+          (process-command process)))
+
 (cl-defun thread-buffer-chat-start
     (command input &key timeout buffer-template buffer-regex stderr append no-switch)
   "Start chat with `thread-buffer' by COMMAND.
@@ -78,16 +129,33 @@ APPEND, NO-SWITCH, for other details, see `thread-buffer-write'."
         (buffer-template (or buffer-template thread-buffer-chat-default-buffer-template))
         (buffer-regex (or buffer-regex thread-buffer-chat-default-buffer-regex)))
 
-    (defun thread-buffer-chat-start--internal-output-filter (p output)
-      (thread-buffer-write output buffer-template buffer-regex append no-switch))
+    (thread-buffer-chat--erase-tmp-output)
 
-    (little-async-start-process command
+    (defun thread-buffer-chat-start--internal-output-filter (p output)
+      (thread-buffer-chat--append-tmp-output output))
+
+    (defun thread-buffer-chat-start--internal-sentinel (process event)
+      (thread-buffer-chat--log (format "Process: %s had the event `%s'.\n"
+                                       (thread-buffer-chat--describe-process process)
+                                       event))
+      (when (equal event "finished\n")
+        (thread-buffer-write (thread-buffer-chat--read-tmp-output)
+                             buffer-template
+                             buffer-regex
+                             append
+                             no-switch)))
+
+    (let ((p (little-async-start-process command
                                 :input input
                                 :process-name thread-buffer-chat-process-name
                                 :buffer-name thread-buffer-chat-process-buffer-name
                                 :stderr stderr
                                 :timeout timeout
+                                :sentinel #'thread-buffer-chat-start--internal-sentinel
                                 :filter #'thread-buffer-chat-start--internal-output-filter)))
+      (thread-buffer-chat--log (format "Process: %s started.\n"
+                                       (thread-buffer-chat--describe-process p)))
+      p)))
 
 (provide 'thread-buffer-chat)
 ;;; thread-buffer-chat.el ends here
